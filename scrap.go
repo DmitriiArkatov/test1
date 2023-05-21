@@ -20,7 +20,7 @@ func arguMents(argORC *string, argCreate *string) {
 } //считывает ввод и сохраняет в переменных
 
 func fileORC(argORC *string) error {
-	file, err := os.Open(*argORC) //"/home/vitaliy/awesomeProject/zadone/scrap.txt"
+	file, err := os.Open(*argORC) //путь до файла
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func scrap(i int) (string, error) {
 } //забираем HTML из странички
 
 func create(i string, argCreate *string) (string, error) {
-	f, err := os.Create(*argCreate + "/сайт" + i) //"/home/vitaliy/awesomeProject/Create"
+	f, err := os.Create(*argCreate + "/сайт" + i) //путь до директории
 	if err != nil {
 		return "Fail", err
 	}
@@ -67,8 +67,8 @@ func create(i string, argCreate *string) (string, error) {
 
 /*
 для проверки:
-Введите путь до файла :/home/vitaliy/awesomeProject/zadone/scrap.txt!!!/home/dmitrii/WorkiingArea/Working/zadone/scrap.txt
-Введите путь до директории:/home/vitaliy/awesomeProject/Create!!!/home/dmitrii/WorkiingArea/Working/Create
+Введите путь до файла :
+Введите путь до директории:
 */
 func main() {
 	argORC := new(string)        // переменная для считывания файла
