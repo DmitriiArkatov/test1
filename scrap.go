@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,22 +10,41 @@ import (
 	"strconv"
 )
 
-var links []string
-var text string //выжимка с сайтовw
-// var links []string //срез для ссылок
-func arguMents(argORC *string, argCreate *string) {
-	fmt.Print("Введите путь до файла :")
-	fmt.Scan(argORC)
-	fmt.Print("Введите путь до директории:")
-	fmt.Scan(argCreate)
-} //считывает ввод и сохраняет в переменных
-
-func fileORC(argORC *string) error {
-	file, err := os.Open(*argORC) //путь до файла
-	if err != nil {
-		return err
+func main() {
+	filepath, dirpath := arguMent()
+	if filepath == nil || dirpath == nil {
+		fmt.Println("Wrong path!!")
 	}
-	defer file.Close()
+	err, links := OpeningAfile(filepath)
+	if err != nil {
+		return
+	}
+	for i := range *links {
+		parsCreate(i, *links, dirpath) //парсим и записываем
+
+	}
+
+}
+
+func arguMent() (*string, *string) {
+	filepath := flag.String("pathfile", " ", "the path to the text file to be scanned ")          // переменная для считывания файла
+	dirpath := flag.String("pathdir", " ", "the path to the directory for creating page content") // переменная для создания новых файлов в директории
+	flag.Parse()
+	return filepath, dirpath
+}
+
+func OpeningAfile(filepath *string) (error, *[]string) {
+	var links []string
+	file, err := os.Open(*filepath) //путь до файла
+	if err != nil {
+		return err, nil
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(file)
 	//var str []string
 	scanner := bufio.NewScanner(file) //возвращает каждую строку текста, очищенную от маркеров конца строки. Возвращаемая строка может быть пустой. Маркером конца строки является один необязательный возврат каретки, за которым следует одна обязательная новая строка.
 	scanner.Split(bufio.ScanLines)
@@ -34,60 +54,53 @@ func fileORC(argORC *string) error {
 		fmt.Println(scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return err
+		return err, nil
 	}
 	fmt.Println(len(links))
 	fmt.Println(links)
-	return err
+	return err, &links
 } //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
 
-func scrap(i int) (string, error) {
+func parsCreate(i int, links []string, dirpath *string) {
+	//забираем страницу
 	resp, err := http.Get(links[i])
 	if err != nil {
-		return "Fail", err
+		fmt.Println(err)
+		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}(resp.Body)
 	body, err := io.ReadAll(resp.Body)
-	text = string(body)
-	return "Done", err
-} //забираем HTML из странички
-
-func create(i string, argCreate *string) (string, error) {
-	f, err := os.Create(*argCreate + "/сайт" + i) //путь до директории
-	if err != nil {
-		return "Fail", err
-	}
-	defer f.Close()
-	_, err = f.WriteString(text)
-	if err != nil {
-		return "Fail", err
-	}
-	return "Done", err
-} //создаем новый файл и записываем в него то что забрали
-
-/*
-для проверки:
-Введите путь до файла :
-Введите путь до директории:
-*/
-func main() {
-	argORC := new(string)        // переменная для считывания файла
-	argCreate := new(string)     // переменная для создания новых файлов в директории
-	arguMents(argORC, argCreate) // считывает ввод
-	err := fileORC(argORC)       // открываем файл , читаем , закрываем
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	for i := range links {
-		_, err := scrap(i) //парсим страничку из файл
+	text := string(body)
+
+	//тут происходит создание файла
+	i += 1
+	n := strconv.Itoa(i)
+	f, err := os.Create(*dirpath + "/сайт" + n) //путь до директории
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func(f *os.File) {
+		err := f.Close()
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
-		i += 1
-		i := strconv.Itoa(i)
-		_, err = create(i, argCreate) //создаем новый файл в директории
-		if err != nil {
-			fmt.Println(err)
-		} //достаем из среза ссылку , забираем HTML и создаем для него файл
+	}(f)
+	_, err = f.WriteString(text)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
-}
+
+} //парсим страницу , создаем файл и записываем
