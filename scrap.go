@@ -45,10 +45,8 @@ func OpeningAfile(filepath *string) (error, *[]string) {
 			fmt.Println(err)
 		}
 	}(file)
-	//var str []string
 	scanner := bufio.NewScanner(file) //возвращает каждую строку текста, очищенную от маркеров конца строки. Возвращаемая строка может быть пустой. Маркером конца строки является один необязательный возврат каретки, за которым следует одна обязательная новая строка.
 	scanner.Split(bufio.ScanLines)
-	//var links *[]string
 	for scanner.Scan() == true {
 		links = append(links, scanner.Text())
 		fmt.Println(scanner.Text())
