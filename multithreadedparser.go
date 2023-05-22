@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,39 +12,40 @@ import (
 
 func main() {
 	ch := make(chan string)
-
-	ors, pc := arguMents()     //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
-	err, links := fileORC(ors) //забираем ошибку и срез с ссылками
+	filepath, dirpath := arguMent()      //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
+	err, links := openingAfile(filepath) //забираем ошибку и срез с ссылками
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	for i := range *links {
-		go parsCreate(i, *links, pc, ch) //парсим и записываем
-		fmt.Println(<-ch)
+		go parsCreate(i, *links, dirpath, ch) //парсим и записываем
+		fmt.Printf("Сайт %s готов \n", <-ch)
 	}
 }
 
-func arguMents() (*string, *string) {
-	argORC := new(string)    // переменная для считывания файла
-	argCreate := new(string) // переменная для создания новых файлов в директории
-	fmt.Print("Введите путь до файла :")
-	fmt.Scan(argORC)
-	fmt.Print("Введите путь до директории:")
-	fmt.Scan(argCreate)
-	return argORC, argCreate
+func arguMent() (*string, *string) {
+	filepath := flag.String("pathfile", " ", "the path to the text file to be scanned ")          // переменная для считывания файла
+	dirpath := flag.String("pathdir", " ", "the path to the directory for creating page content") // переменная для создания новых файлов в директории
+	flag.Parse()
+	return filepath, dirpath
 } //считывает ввод и сохраняет в переменных
 
-func fileORC(argORC *string) (error, *[]string) {
+func openingAfile(argORC *string) (error, *[]string) {
 	var links []string
 	file, err := os.Open(*argORC) //путь до файла
 	if err != nil {
 		return err, nil
 	}
-	defer file.Close()
-	//var str []string
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}(file)
 	scanner := bufio.NewScanner(file) //возвращает каждую строку текста, очищенную от маркеров конца строки. Возвращаемая строка может быть пустой. Маркером конца строки является один необязательный возврат каретки, за которым следует одна обязательная новая строка.
 	scanner.Split(bufio.ScanLines)
-	//var links *[]string
 	for scanner.Scan() == true {
 		links = append(links, scanner.Text())
 		fmt.Println(scanner.Text())
@@ -61,9 +63,20 @@ func parsCreate(i int, links []string, pc *string, ch chan string) {
 	resp, err := http.Get(links[i])
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}(resp.Body)
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	text := string(body)
 
 	//тут происходит создание файла
@@ -73,11 +86,18 @@ func parsCreate(i int, links []string, pc *string, ch chan string) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}(f)
 	_, err = f.WriteString(text)
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	ch <- "Сайт " + n + " готов"
+	ch <- n
 
 } //парсим страницу , создаем файл и записываем
