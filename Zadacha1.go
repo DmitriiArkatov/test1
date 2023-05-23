@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -18,7 +17,7 @@ func main() {
 		panic("Wrong path!!")
 		return
 	}
-	links, err := readSourse(filepath)
+	links, err := readSourse(filepath) //читаем ресурс
 	if err != nil {
 		return
 	}
@@ -30,6 +29,7 @@ func main() {
 	fmt.Printf("Время исполнения: %s\n", duration)
 }
 
+// arrguMents - считываем аргументы с консоли
 func arguMents() (*string, *string) {
 	filepath := flag.String("pathfile", " ", "the path to the text file to be scanned ")          // переменная для считывания файла
 	dirpath := flag.String("pathdir", " ", "the path to the directory for creating page content") // переменная для создания новых файлов в директории
@@ -37,6 +37,7 @@ func arguMents() (*string, *string) {
 	return filepath, dirpath
 }
 
+// readSours - открываем файл , читаем и заносим в срез для ссылок, закрываем
 func readSourse(filepath *string) ([]string, error) {
 	var links []string
 	file, err := os.Open(*filepath) //путь до файла
@@ -61,8 +62,9 @@ func readSourse(filepath *string) ([]string, error) {
 	fmt.Println(links)
 	fmt.Println(len(links))
 	return links, err
-} //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
+}
 
+// writTodir - парсим страницу , создаем файл и записываем
 func writTodir(i int, link string, dirpath *string) {
 	//забираем страницу
 	resp, err := http.Get(link)
@@ -85,7 +87,7 @@ func writTodir(i int, link string, dirpath *string) {
 	text := string(body)
 	//тут происходит создание файла
 	i += 1
-	n := strconv.Itoa(i)                        // преобразуем в строку
+	n := fmt.Sprintf("%v", i)                   // преобразуем в строку
 	f, err := os.Create(*dirpath + "/сайт" + n) //путь до директории
 	if err != nil {
 		fmt.Println(err)
@@ -104,4 +106,4 @@ func writTodir(i int, link string, dirpath *string) {
 		return
 	}
 
-} //парсим страницу , создаем файл и записываем
+}
