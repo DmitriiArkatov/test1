@@ -13,37 +13,37 @@ import (
 
 func main() {
 	start := time.Now()
-	duration := time.Since(start)
 	ch := make(chan string)
 
-	filepath, dirpath := arguMent()      //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
-	err, links := openingAfile(filepath) //забираем ошибку и срез с ссылками
+	filepath, dirpath := arguMents()  //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
+	links, err := readSours(filepath) //забираем ошибку и срез с ссылками
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	for i := range *links {
-		go parsCreate(i, *links, dirpath, ch) //парсим и записываем
+	for i, link := range links {
+		fmt.Println(link)
+		go writTodir(i, link, dirpath, ch) //парсим и записываем
 	}
-	for i := 1; i <= 5; i++ {
+	for range links {
 		fmt.Printf("Сайт %s готов \n", <-ch)
-
 	}
+	duration := time.Since(start)
 	fmt.Printf("Время исполнения: %s\n", duration)
 }
 
-func arguMent() (*string, *string) {
+func arguMents() (*string, *string) {
 	filepath := flag.String("pathfile", " ", "the path to the text file to be scanned ")          // переменная для считывания файла
 	dirpath := flag.String("pathdir", " ", "the path to the directory for creating page content") // переменная для создания новых файлов в директории
 	flag.Parse()
 	return filepath, dirpath
 } //считывает ввод и сохраняет в переменных
 
-func openingAfile(argORC *string) (error, *[]string) {
+func readSours(argORC *string) ([]string, error) {
 	var links []string
 	file, err := os.Open(*argORC) //путь до файла
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	defer func(file *os.File) {
 		err := file.Close()
@@ -59,16 +59,16 @@ func openingAfile(argORC *string) (error, *[]string) {
 		fmt.Println(scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return err, nil
+		return nil, err
 	}
 	fmt.Println(len(links))
 	fmt.Println(links)
-	return err, &links
+	return links, err
 } //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
 
-func parsCreate(i int, links []string, pc *string, ch chan string) {
+func writTodir(i int, link string, pc *string, ch chan string) {
 	//забираем страницу
-	resp, err := http.Get(links[i])
+	resp, err := http.Get(link)
 	if err != nil {
 		fmt.Println(err)
 		return
