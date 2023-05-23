@@ -8,14 +8,18 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func main() {
+	start := time.Now()
+	duration := time.Since(start)
 	filepath, dirpath := arguMent()
 	if filepath == nil || dirpath == nil {
-		fmt.Println("Wrong path!!")
+		panic("Wrong path!!")
+		return
 	}
-	err, links := OpeningAfile(filepath)
+	err, links := openingAfile(filepath)
 	if err != nil {
 		return
 	}
@@ -23,7 +27,7 @@ func main() {
 		parsCreate(i, *links, dirpath) //парсим и записываем
 
 	}
-
+	fmt.Printf("Время исполнения: %s\n", duration)
 }
 
 func arguMent() (*string, *string) {
@@ -33,7 +37,7 @@ func arguMent() (*string, *string) {
 	return filepath, dirpath
 }
 
-func OpeningAfile(filepath *string) (error, *[]string) {
+func openingAfile(filepath *string) (error, *[]string) {
 	var links []string
 	file, err := os.Open(*filepath) //путь до файла
 	if err != nil {
