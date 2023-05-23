@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 func main() {
+	start := time.Now()
+	duration := time.Since(start)
 	ch := make(chan string)
 
 	filepath, dirpath := arguMent()      //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
@@ -23,9 +26,10 @@ func main() {
 		go parsCreate(i, *links, dirpath, ch) //парсим и записываем
 	}
 	for i := 1; i <= 5; i++ {
-		fmt.Printf("Сайт %s готов \n", <-ch)//ждем когда вернутся все ранее отправленные каналы(возвращаются не последовательно)
+		fmt.Printf("Сайт %s готов \n", <-ch)
 
 	}
+	fmt.Printf("Время исполнения: %s\n", duration)
 }
 
 func arguMent() (*string, *string) {
