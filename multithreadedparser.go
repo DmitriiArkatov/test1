@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 func main() {
-	ch := make(chan string)
+	var wg sync.WaitGroup
+	
 	filepath, dirpath := arguMent()      //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
 	err, links := openingAfile(filepath) //забираем ошибку и срез с ссылками
 	if err != nil {
@@ -19,9 +21,11 @@ func main() {
 		return
 	}
 	for i := range *links {
-		go parsCreate(i, *links, dirpath, ch) //парсим и записываем
-		fmt.Printf("Сайт %s готов \n", <-ch)
+		wg.Add(1)
+		go parsCreate(i, *links, dirpath, &wg) //парсим и записываем
+		fmt.Printf("Сайт %x готов \n", i+1)
 	}
+	wg.Wait()
 }
 
 func arguMent() (*string, *string) {
@@ -58,7 +62,7 @@ func openingAfile(argORC *string) (error, *[]string) {
 	return err, &links
 } //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
 
-func parsCreate(i int, links []string, pc *string, ch chan string) {
+func parsCreate(i int, links []string, pc *string, wg *sync.WaitGroup) {
 	//забираем страницу
 	resp, err := http.Get(links[i])
 	if err != nil {
@@ -98,6 +102,5 @@ func parsCreate(i int, links []string, pc *string, ch chan string) {
 		fmt.Println(err)
 		return
 	}
-	ch <- n
-
+	wg.Done()
 } //парсим страницу , создаем файл и записываем
