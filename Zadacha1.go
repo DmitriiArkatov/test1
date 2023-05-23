@@ -22,8 +22,8 @@ func main() {
 	if err != nil {
 		return
 	}
-	for _, link := range links {
-		writTodir(link, dirpath) //парсим и записываем
+	for i, link := range links {
+		writTodir(i, link, dirpath) //парсим и записываем
 
 	}
 	duration := time.Since(start)
@@ -54,17 +54,16 @@ func readSourse(filepath *string) ([]string, error) {
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() == true {
 		links = append(links, scanner.Text())
-		fmt.Println(scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	fmt.Println(len(links))
 	fmt.Println(links)
+	fmt.Println(len(links))
 	return links, err
 } //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
 
-func writTodir(link string, dirpath *string) {
+func writTodir(i int, link string, dirpath *string) {
 	//забираем страницу
 	resp, err := http.Get(link)
 	if err != nil {
@@ -85,7 +84,6 @@ func writTodir(link string, dirpath *string) {
 	}
 	text := string(body)
 	//тут происходит создание файла
-	var i int
 	i += 1
 	n := strconv.Itoa(i)                        // преобразуем в строку
 	f, err := os.Create(*dirpath + "/сайт" + n) //путь до директории
