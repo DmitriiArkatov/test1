@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"sync"
 )
 
 func main() {
-	var wg sync.WaitGroup
-	
+	ch := make(chan string)
+
 	filepath, dirpath := arguMent()      //считываем путь до файла(orc),который будем читать, и путь до директории для записи(pc)
 	err, links := openingAfile(filepath) //забираем ошибку и срез с ссылками
 	if err != nil {
@@ -21,11 +20,12 @@ func main() {
 		return
 	}
 	for i := range *links {
-		wg.Add(1)
-		go parsCreate(i, *links, dirpath, &wg) //парсим и записываем
-		fmt.Printf("Сайт %x готов \n", i+1)
+		go parsCreate(i, *links, dirpath, ch) //парсим и записываем
 	}
-	wg.Wait()
+	for i := 1; i <= 5; i++ {
+		fmt.Printf("Сайт %s готов \n", <-ch)//ждем когда вернутся все ранее отправленные каналы(возвращаются не последовательно)
+
+	}
 }
 
 func arguMent() (*string, *string) {
@@ -62,7 +62,7 @@ func openingAfile(argORC *string) (error, *[]string) {
 	return err, &links
 } //открываем файл , читаем и заносим в срез для ссылок, закрываем (file Open, Read, Close)
 
-func parsCreate(i int, links []string, pc *string, wg *sync.WaitGroup) {
+func parsCreate(i int, links []string, pc *string, ch chan string) {
 	//забираем страницу
 	resp, err := http.Get(links[i])
 	if err != nil {
@@ -102,5 +102,5 @@ func parsCreate(i int, links []string, pc *string, wg *sync.WaitGroup) {
 		fmt.Println(err)
 		return
 	}
-	wg.Done()
+	ch <- n
 } //парсим страницу , создаем файл и записываем
