@@ -4,24 +4,34 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"sync"
+	"time"
 )
 
+// main - многопоточный генератор случайных чисел
 func main() {
-	ch := make(chan int)
 	var uniquenum []int
+	start := time.Now()
+	var wg sync.WaitGroup
 	limit, flow, count := options()
-	fmt.Println("началось")
-	for len(uniquenum) == count {
+	for len(uniquenum) != count {
 		for i := 0; i <= flow; i++ {
-			fmt.Println("началось")
-			go randomaizer(limit, ch)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				r := rand.Intn(limit + 1)
+				bo := uniquenessCheck(uniquenum, r)
+				if bo != true {
+					uniquenum = append(uniquenum, r)
+				} else {
+				}
+			}()
 		}
-		for i := 0; i <= flow; i++ {
-			fmt.Println(<-ch)
-			filtr(ch, uniquenum)
-		}
+		wg.Wait()
 	}
 	fmt.Println(uniquenum)
+	duration := time.Since(start)
+	fmt.Printf("Время исполнения: %s\n", duration)
 }
 
 // Ввод аргументов с консоли
@@ -29,25 +39,12 @@ func options() (int, int, int) {
 	limit := flag.Int("limit", 0, "Limiting number generation")
 	flow := flag.Int("flow", 0, "number of threads")
 	count := flag.Int("count", 0, "number of unique numbers")
+	flag.Parse()
 	return *limit, *flow, *count
 }
 
-func randomaizer(limit int, ch chan int) {
-	r := rand.Intn(limit)
-	ch <- r
-
-}
-
-func filtr(ch chan int, uniquenum []int) {
-	bo := Contains(uniquenum, <-ch)
-	if bo != true {
-		uniquenum = append(uniquenum, <-ch)
-	} else {
-
-	}
-}
-
-func Contains(uniquenum []int, x int) bool {
+// uniquenessCheck - проверяет наличие числа в списке
+func uniquenessCheck(uniquenum []int, x int) bool {
 	for _, n := range uniquenum {
 		if x == n {
 			return true
