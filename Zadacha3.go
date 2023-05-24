@@ -35,6 +35,9 @@ func main() {
 			trechmap[r] = r
 			fmt.Println(uniquenum)
 		}
+		if len(uniquenum) == count {
+			break
+		}
 	}
 
 	fmt.Println(uniquenum)
@@ -45,14 +48,15 @@ func main() {
 // Ввод аргументов с консоли
 func oPtions() (int, int, int) {
 	limit := flag.Int("limit", 15, "Limiting number generation")
-	flow := flag.Int("flow", 1, "number of threads")
-	count := flag.Int("count", 5, "number of unique numbers")
+	flow := flag.Int("flow", 5, "number of threads")
+	count := flag.Int("count", 10, "number of unique numbers")
 	flag.Parse()
 	return *limit, *flow, *count
 }
+
 func randomaizer(wg *sync.WaitGroup, ch chan int, limit int, count int) {
 	defer wg.Done()
-	for i := 1; i <= 1000; i++ {
+	for i := 0; i <= count; i++ {
 		r := rand.Intn(limit + 1)
 		ch <- r
 	}
