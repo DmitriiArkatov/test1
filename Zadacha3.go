@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -49,6 +50,9 @@ func options() (int, int, int) {
 	flow := flag.Int("flow", 1, "number of threads")             //кол - во горутин
 	count := flag.Int("count", 10, "number of unique numbers")   //кол - во уникальных элементов в списке
 	flag.Parse()
+	if *limit == 0 && *count == 0 {
+		log.Fatal("limit and count must be > 0")
+	}
 	return *limit, *flow, *count
 }
 
