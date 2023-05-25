@@ -52,6 +52,7 @@ func options() (int, int, int) {
 	return *limit, *flow, *count
 }
 
+// генератор уникальных чисел
 func randomaizer(wg *sync.WaitGroup, ch chan int, limit int) {
 	defer wg.Done()
 	for i := -1; i <= 100; i++ {
