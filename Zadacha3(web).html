@@ -1,8 +1,9 @@
+{{ define "button" }}
 <!DOCTYPE html>
-<html>
+<html lang="en">
  <head>
   <meta charset="utf-8">
-  <title>Ввод числа</title>
+  <title>Генератор уникальных чисел</title>
   <style>
    body {
     padding-left: 11em;
@@ -11,21 +12,28 @@
     color: purple;
     background-color: #28D6DCFF
    }
+   .button {
+       background-color: #057da8;
+       border: none;
+       color: white;
+       padding: 15px 32px;
+       text-align: center;
+       text-decoration: none;
+       display: inline-block;
+       font-size: 16px;
+   }
   </style>
  </head>
  <body>
-  <form action="">
+  <form action="" method="post">
     <p>Введите ограничение по генерации:</p>
-    <p><input type="number" name="limit" ></p>
-    <p><form action="">
+      <p><input type="number" name="limit" ></p>
     <p>Введите кол-во горутин:</p>
     <p><input type="number" name="flow" ></p>
-    <form action="">
     <p>Введите кол-во уникальных чисел:</p>
     <p><input type="number" name="count" ></p>
-    <p><input type="button" value=" Нажми меня "></p>
+    <p><button class="button">Создать</button></p>
    </form>
-  </form>
-  </form>
  </body>
 </html>
+{{ end }}
