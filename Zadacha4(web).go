@@ -3,16 +3,18 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
 
 type FormData struct {
-	Limit int `json:"limit"`
-	Flow  int `json:"flow"`
-	Count int `json:"count"`
+	Limit string `json:"limit"`
+	Flow  string `json:"flow"`
+	Count string `json:"count"`
 }
 
 func main() {
@@ -20,10 +22,10 @@ func main() {
 }
 
 func local(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		http.ServeFile(w, r, "primerno.html")
-	case http.MethodPost:
+	if r.Method == http.MethodGet {
+		http.ServeFile(w, r, "/home/vitaliy/awesomeProject/trening/primer.html")
+	}
+	if r.Method == http.MethodPost {
 		contentType := r.Header.Get("Content-Type")
 		if contentType != "application/json" {
 			http.Error(w, "Неверный Content-Type", http.StatusUnsupportedMediaType)
@@ -37,49 +39,40 @@ func local(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Ошибка при чтении JSON-данных", http.StatusBadRequest)
 			return
 		}
-
+		defer func(Body io.ReadCloser) {
+			err = Body.Close()
+		}(r.Body)
 		// Делаем что-то с данными
-		fmt.Println("Получено сообщение:", formData.Flow, formData.Count, formData.Limit)
+		limit, err := strconv.Atoi(formData.Limit)
+		if err != nil {
+			http.Error(w, "Ошибка при конвертировании", http.StatusBadRequest)
+		}
+		flow, err := strconv.Atoi(formData.Flow)
+		if err != nil {
+			http.Error(w, "Ошибка при конвертировании", http.StatusBadRequest)
+		}
+		count, err := strconv.Atoi(formData.Count)
+		if err != nil {
+			http.Error(w, "Ошибка при конвертировании", http.StatusBadRequest)
+		}
+		uniquenum := Random(limit, flow, count)
+		fmt.Println("Получено сообщение:", uniquenum)
 
 		// Отправляем ответ
-		response := struct {
-			Status string `json:"status"`
-		}{
-			Status: "success",
+		response := uniquenum
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err)
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-
 	}
-	//if r.Method != http.MethodPost {
-	//	http.Error(w, "Метод не разрешен", http.StatusMethodNotAllowed)
-	//	return
-	//}
-
-	// Проверяем Content-Type заголовок
-
 }
 
-//func primer(w http.ResponseWriter, r *http.Request) {
-//	t, err := template.ParseFiles("/home/vitaliy/awesomeProject/inputBox.html")
-//	if err != nil {
-//		fmt.Fprintf(w, err.Error())
-//	}
-//	err = t.ExecuteTemplate(w, "button", nil)
-//	if err != nil {
-//		fmt.Fprintf(w, err.Error())
-//	}
-//
-//}
 func createLocalhost() {
 	port := "8888"
-	mux := http.NewServeMux()
-
-	//mux.HandleFunc("/", primer)
-	mux.HandleFunc("/", local)
-
-	err := http.ListenAndServe(":"+port, mux)
+	http.HandleFunc("/", local)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
