@@ -22,11 +22,12 @@
             document.getElementById("limit").value,
             document.getElementById("flow").value,
             document.getElementById("count").value
-        ])
+        ]);
+        document.getElementById("result").innerHTML = "";
     });
     };
     socket.onmessage = event => {
-       document.getElementById('result').innerHTML += event.data+"  ";
+        document.getElementById('result').innerHTML += event.data+"  ";
     }
     socket.onclose = event => {
         console.log("Socket closed connection: ", event);
