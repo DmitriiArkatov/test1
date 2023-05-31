@@ -41,6 +41,7 @@ func wsLocal(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil) //Модернизируем наше HTTP соединение и подключаемся по WebSocket
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	defer func(conn *websocket.Conn) {
@@ -57,13 +58,14 @@ func wsLocal(w http.ResponseWriter, r *http.Request) {
 
 // reader - читаем сообщение по WebSocket
 func reader(conn *websocket.Conn) {
+	wg := sync.WaitGroup{}
+
 	var (
 		limit, flow, count int
 	)
 	ch := make(chan int)
 	defer close(ch)
 
-	go sendAnswer(conn, ch)
 	for {
 		_, p, err := conn.ReadMessage() // читаем сообщения
 		if err != nil {
@@ -71,6 +73,7 @@ func reader(conn *websocket.Conn) {
 			return
 		}
 		message := strings.Split(string(p), ",") //конвертируем полученое сообщение в массив
+		fmt.Println(message)
 		//парсим сообщение-массив
 		for n, i := range message {
 			n++
@@ -83,12 +86,27 @@ func reader(conn *websocket.Conn) {
 				count, _ = strconv.Atoi(i)
 			}
 		}
-		go Random(limit, flow, count, ch)
+		fmt.Println(limit, flow, count)
+		//if limit > 0 && flow > 0 && count > 0 {
+
+		if limit > 0 && flow > 0 && count > 0 {
+			wg.Add(1)
+			go Random(limit, flow, count, ch)
+			go sendAnswer(conn, ch, &wg)
+			
+		} else {
+			answer := "Все параметры должны быть > 0!!!"
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(answer)); err != nil {
+				log.Println(err)
+				return
+			}
+		}
 	}
 }
 
 // sendAnswer - отсылаем ответ пользователю по WebSocket
-func sendAnswer(conn *websocket.Conn, ch <-chan int) {
+func sendAnswer(conn *websocket.Conn, ch <-chan int, wg *sync.WaitGroup) {
+	defer wg.Wait()
 	for {
 		r, ok := <-ch
 		if !ok {
