@@ -92,7 +92,6 @@ func sendAnswer(conn *websocket.Conn, ch <-chan int) {
 	for {
 		r, ok := <-ch
 		if !ok {
-			fmt.Println("Ошибка в передаче через канал ch")
 			return
 		}
 
