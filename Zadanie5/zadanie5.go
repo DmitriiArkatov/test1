@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
+	"fmt"
+	"gorilla/websocket"
 	"log"
 	"math/rand"
 	"net/http"
@@ -15,33 +16,46 @@ func main() {
 	createLocalhost()
 	log.Fatal(http.ListenAndServe(":8888", nil))
 }
+
+// createLocalhost - создает локальные сервера
 func createLocalhost() {
 	http.HandleFunc("/", local)
 	http.HandleFunc("/ws", wsLocal)
 }
+
+// local - сервер с соединение HTTP
 func local(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "/home/vitaliy/awesomeProject/trening/response.html")
 }
+
+// wslocal - сервер с соединение WebSocket
 func wsLocal(w http.ResponseWriter, r *http.Request) {
+	//буфер чтения и записи для WebSocket
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	conn, err := upgrader.Upgrade(w, r, nil)
+
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true } //Проверяем входящий запрос на подключение по WebSocket
+
+	conn, err := upgrader.Upgrade(w, r, nil) //Модернизируем наше HTTP соединение и подключаемся по WebSocket
 	if err != nil {
 		log.Println(err)
 	}
+
 	defer func(conn *websocket.Conn) {
 		err := conn.Close()
 		if err != nil {
 			return
 		}
 	}(conn)
-	log.Println("Client Connected")
+
+	log.Println("Client connected")
 
 	reader(conn)
 }
+
+// reader - читаем сообщение по WebSocket
 func reader(conn *websocket.Conn) {
 	var (
 		limit, flow, count int
@@ -49,16 +63,15 @@ func reader(conn *websocket.Conn) {
 	ch := make(chan int)
 	defer close(ch)
 
-	go sendElements(conn, ch)
+	go sendAnswer(conn, ch)
 	for {
-		// прочитать в сообщении
-		_, p, err := conn.ReadMessage()
+		_, p, err := conn.ReadMessage() // читаем сообщения
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		message := strings.Split(string(p), ",")
-		// выводим это сообщение для наглядности
+		message := strings.Split(string(p), ",") //конвертируем полученое сообщение в массив
+		//парсим сообщение-массив
 		for n, i := range message {
 			n++
 			switch n {
@@ -73,23 +86,27 @@ func reader(conn *websocket.Conn) {
 		go Random(limit, flow, count, ch)
 	}
 }
-func sendElements(conn *websocket.Conn, ch <-chan int) {
+
+// sendAnswer - отсылаем ответ пользователю по WebSocket
+func sendAnswer(conn *websocket.Conn, ch <-chan int) {
 	for {
 		r, ok := <-ch
 		if !ok {
-			// Канал закрыт, передача элементов завершена
+			fmt.Println("Ошибка в передаче через канал ch")
 			return
 		}
 
-		// Преобразуем элемент в строку и отправляем клиенту
-		answer := strconv.Itoa(r)
+		answer := strconv.Itoa(r) // Преобразуем элемент в строку и отправляем клиенту
+		//Отправка ответа пользователю
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(answer)); err != nil {
 			log.Println(err)
 			return
 		}
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second)
 	}
 }
+
+// Random - получаем уникальные числа по заданным параметрам
 func Random(limit int, flow int, count int, ch1 chan<- int) {
 	ch := make(chan int)
 	trashmap := make(map[int]int)
@@ -116,6 +133,8 @@ func Random(limit int, flow int, count int, ch1 chan<- int) {
 		}
 	}
 }
+
+// randomaizer - генерирует рандомные числа
 func randomaizer(wg *sync.WaitGroup, ch chan int, limit int) {
 	defer wg.Done()
 	for i := -1; i <= 100; i++ {
