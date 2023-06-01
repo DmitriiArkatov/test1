@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Отправка данных на сервер</title>
+    <script src="http://192.168.81.53:8888/front.js"></script>
 </head>
 <body>
 <h1>Отправка данных на сервер</h1>
-    <label for="limit">Введите ограничение по генерации:</label>
+<form method="get">
+<label for="limit">Введите ограничение по генерации:</label>
     <input type="number" id="limit" name="limit" min="1" required><br><br>
     <label for="flow">Введите кол-во горутин:</label>
     <input type="number" id="flow" name="flow" min="1" required><br><br>
@@ -13,28 +16,6 @@
     <input type="number" id="count" name="count" min="1" required><br><br>
     <input id="btn" type="button" value="Отправить">
     <p id="result"></p>
-<script>
-    let socket = new WebSocket("ws://localhost:8888/ws");
-    socket.onopen = () => {
-        console.log("Socket open connection!");
-    document.getElementById("btn").addEventListener("click", function event () {
-        socket.send([
-            document.getElementById("limit").value,
-            document.getElementById("flow").value,
-            document.getElementById("count").value
-        ]);
-        document.getElementById("result").innerHTML = "";
-    });
-    };
-    socket.onmessage = event => {
-        document.getElementById('result').innerHTML += event.data+"  ";
-    }
-    socket.onclose = event => {
-        console.log("Socket closed connection: ", event);
-    };
-    socket.onerror = error => {
-        console.log("Socket error: ", error);
-    };
-</script>
+</form>
 </body>
 </html>
