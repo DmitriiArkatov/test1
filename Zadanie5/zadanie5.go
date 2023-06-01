@@ -7,25 +7,30 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
 
 func main() {
 	createLocalhost()
-	log.Fatal(http.ListenAndServe(":8888", nil))
+	log.Fatal(http.ListenAndServe("192.168.81.53:8888", nil))
 }
 
 // createLocalhost - создает локальные сервера
 func createLocalhost() {
 	http.HandleFunc("/", local)
+	http.HandleFunc("/front.js", localjs)
 	http.HandleFunc("/ws", wsLocal)
 }
 
 // local - сервер с соединение HTTP
 func local(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "/home/vitaliy/awesomeProject/trening/response.html")
+}
+
+// localjs - выгружаем JS файл
+func localjs(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "/home/vitaliy/awesomeProject/trening/front.js")
 }
 
 // wslocal - сервер с соединение WebSocket
@@ -44,6 +49,7 @@ func wsLocal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//закрываем соединение
 	defer func(conn *websocket.Conn) {
 		err := conn.Close()
 		if err != nil {
@@ -53,47 +59,43 @@ func wsLocal(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Client connected")
 
-	reader(conn)
+	reader(conn, r)
 }
 
-// reader - читаем сообщение по WebSocket
-func reader(conn *websocket.Conn) {
-	wg := sync.WaitGroup{}
-
-	var (
-		limit, flow, count int
-	)
+// reader - читаем сообщение по URL и WebSocket
+func reader(conn *websocket.Conn, r *http.Request) {
 	ch := make(chan int)
-	defer close(ch)
-
+	var wg sync.WaitGroup
 	for {
 		_, p, err := conn.ReadMessage() // читаем сообщения
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		message := strings.Split(string(p), ",") //конвертируем полученое сообщение в массив
-		fmt.Println(message)
-		//парсим сообщение-массив
-		for n, i := range message {
-			n++
-			switch n {
-			case 1:
-				limit, _ = strconv.Atoi(i)
-			case 2:
-				flow, _ = strconv.Atoi(i)
-			case 3:
-				count, _ = strconv.Atoi(i)
-			}
-		}
-		fmt.Println(limit, flow, count)
-		//if limit > 0 && flow > 0 && count > 0 {
+		fmt.Println(p)
 
+		//забираем из url данные
+		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+		flow, _ := strconv.Atoi(r.URL.Query().Get("flow"))
+		count, _ := strconv.Atoi(r.URL.Query().Get("count"))
+
+		//если условие - истина , то начинается запись уникального числа в канал, для отправки
 		if limit > 0 && flow > 0 && count > 0 {
-			wg.Add(1)
-			go Random(limit, flow, count, ch)
-			go sendAnswer(conn, ch, &wg)
-			
+			go checkSendAnswer(conn, ch, count)
+			func() {
+				for i := 0; i < flow; i++ {
+					//запускается указаное кол-во горутин
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						defer close(ch)
+						for i := -1; i <= 100; i++ {
+							r := rand.Intn(limit + 1)
+							ch <- r
+						}
+					}()
+				}
+			}()
 		} else {
 			answer := "Все параметры должны быть > 0!!!"
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(answer)); err != nil {
@@ -104,58 +106,24 @@ func reader(conn *websocket.Conn) {
 	}
 }
 
-// sendAnswer - отсылаем ответ пользователю по WebSocket
-func sendAnswer(conn *websocket.Conn, ch <-chan int, wg *sync.WaitGroup) {
-	defer wg.Wait()
-	for {
-		r, ok := <-ch
-		if !ok {
-			return
-		}
-
-		answer := strconv.Itoa(r) // Преобразуем элемент в строку и отправляем клиенту
-		//Отправка ответа пользователю
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(answer)); err != nil {
-			log.Println(err)
-			return
-		}
-		time.Sleep(time.Second)
-	}
-}
-
-// Random - получаем уникальные числа по заданным параметрам
-func Random(limit int, flow int, count int, ch1 chan<- int) {
-	ch := make(chan int)
+// checkSendAnswer - проверяем на уникальность и отсылаем ответ пользователю по WebSocket
+func checkSendAnswer(conn *websocket.Conn, ch <-chan int, count int) {
 	trashmap := make(map[int]int)
-	var uniquenum []int
-	var wg sync.WaitGroup
-	for i := 0; i < flow; i++ {
-		wg.Add(1)
-		go randomaizer(&wg, ch, limit)
-	}
-	//запускаем горутину которая будет закрывать каналы и остальные горутины
-	go func() {
-		wg.Wait()
-		close(ch)
-	}()
+
 	//проверка уникальности числа в списке
 	for r := range ch {
 		if r != trashmap[r] {
-			uniquenum = append(uniquenum, r)
 			trashmap[r] = r
-			ch1 <- r
+			answer := strconv.Itoa(r) // Преобразуем элемент в строку и отправляем клиенту
+			//Отправка ответа пользователю
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(answer)); err != nil {
+				log.Println(err)
+				return
+			}
+			time.Sleep(time.Second)
 		}
-		if len(uniquenum) == count {
+		if len(trashmap) == count {
 			break
 		}
-	}
-}
-
-// randomaizer - генерирует рандомные числа
-func randomaizer(wg *sync.WaitGroup, ch chan int, limit int) {
-	defer wg.Done()
-	for i := -1; i <= 100; i++ {
-		r := rand.Intn(limit + 1)
-		ch <- r
 	}
 }
