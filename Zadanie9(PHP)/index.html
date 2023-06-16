@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Отправка данных на сервер</title>
+</head>
+<body>
+<h1>Отправка данных на сервер</h1>
+<form action="server.php" method="get">
+<label for="limit">Введите ограничение по генерации:</label>
+    <input type="number" id="limit" name="limit" min="1" required><br><br>
+    <label for="flow">Введите кол-во горутин:</label>
+    <input type="number" id="flow" name="flow" min="1" required><br><br>
+    <label for="count">Введите кол-во уникальных чисел:</label>
+    <input type="number" id="count" name="count" min="1" required><br><br>
+    <input id="btn" type="submit" value="Отправить">
+    <p id="result"></p>
+</form>
+</body>
+</html>
